@@ -167,7 +167,13 @@ textarea{min-height:88px;resize:vertical}
     <p class="sub">Ficam guardados neste celular até subirem para o HubSpot.</p>
     <div id="listaFila"></div>
     <button class="btn" id="btnSincronizar">Tentar enviar agora</button>
+    <button class="btn sec" id="btnExportar">Exportar cópia de segurança</button>
     <button class="btn sec" id="btnVoltarScan">Voltar para a câmera</button>
+    <div class="mini">A cópia de segurança contém <b>todos</b> os leads deste celular,
+      inclusive os já enviados. Guarde-a no fim do dia: é a garantia de que nada se perde
+      caso algum envio falhe silenciosamente.</div>
+    <textarea id="areaExport" style="display:none;margin-top:12px;min-height:160px;
+      font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea>
   </section>
 </main>
 
@@ -193,10 +199,13 @@ function tela(id){
 function fila(){ try{ return JSON.parse(localStorage.getItem(LS_FILA)||'[]'); }catch(e){ return []; } }
 function setFila(f){ localStorage.setItem(LS_FILA, JSON.stringify(f)); pintaFila(); }
 function pintaFila(){
-  var f = fila(), pend = f.filter(function(x){ return !x.enviado; }).length;
+  var f = fila();
+  var pend = f.filter(function(x){ return !x.enviado && x.email; }).length;
+  var semEmail = f.filter(function(x){ return !x.email; }).length;
   var b = $('hFila');
-  if (pend === 0){ b.className='badge ok'; b.textContent = f.length ? f.length+' enviados' : 'pronto'; }
-  else { b.className='badge pend'; b.textContent = pend+' na fila'; }
+  if (pend > 0){ b.className='badge pend'; b.textContent = pend+' na fila'; }
+  else if (semEmail > 0){ b.className='badge pend'; b.textContent = f.length+' · '+semEmail+' s/ e-mail'; }
+  else { b.className='badge ok'; b.textContent = f.length ? f.length+' enviados' : 'pronto'; }
 }
 
 /* ---------- parser do QR ---------- */
@@ -431,17 +440,15 @@ function salvar(){
   sincronizar();
 }
 
-/* ---------- envio ao HubSpot ---------- */
-function emailEnvio(l){
-  if (l.email) return l.email;
-  var chave = (l.codigo || l.id).toString().toLowerCase().replace(/[^a-z0-9]/g,'');
-  return 'sem-email-' + chave + '@projuris-summit-2026.invalid';
-}
+/* ---------- envio ao HubSpot ----------
+   O formulário do HubSpot exige e-mail e recusa endereços fabricados. Lead que veio
+   só com telefone fica guardado aqui e entra no CRM pela cópia de segurança, que usa
+   outro caminho e cria o contato sem e-mail — sem sujar a base com endereço inventado. */
 function payload(l){
   var f = [];
   var add = function(n,v){ if (v!==undefined && v!==null && v!=='') f.push({objectTypeId:'0-1',name:n,value:String(v)}); };
   var partes = l.nome.trim().split(/\s+/);
-  add('email', emailEnvio(l));
+  add('email', l.email);
   add('firstname', partes[0]);
   add('lastname', partes.slice(1).join(' ') || partes[0]);
   add('company', l.empresa);
@@ -467,7 +474,9 @@ function sincronizar(){
   if (sincronizando) return;
   if (!navigator.onLine) { pintaFila(); return; }
   if (!C.formGuid || C.formGuid.indexOf('__') === 0){ pintaFila(); return; }
-  var f = fila(), pend = f.filter(function(x){ return !x.enviado && x.tentativas < 12; });
+  var f = fila(), pend = f.filter(function(x){
+    return !x.enviado && x.tentativas < 12 && x.email;  // sem e-mail: só pela cópia de segurança
+  });
   if (!pend.length) { pintaFila(); return; }
   sincronizando = true;
   var url = 'https://api.hsforms.com/submissions/v3/integration/submit/'+C.portalId+'/'+C.formGuid;
@@ -493,7 +502,8 @@ function pintaListaFila(){
   if (!f.length){ el.innerHTML = '<p class="sub">Nenhum lead captado ainda.</p>'; return; }
   el.innerHTML = f.slice().reverse().map(function(l){
     var st = l.enviado ? '<span style="color:#4ade80">enviado</span>'
-      : (l.erro ? '<span style="color:#fca5a5">erro</span>' : '<span style="color:#fbbf24">na fila</span>');
+      : (!l.email ? '<span style="color:#93c5fd">só na cópia</span>'
+      : (l.erro ? '<span style="color:#fca5a5">erro</span>' : '<span style="color:#fbbf24">na fila</span>'));
     return '<div class="fila-item"><div><b>'+esc(l.nome)+'</b><br>'+
       '<span style="color:#93a4c0">'+esc(l.empresa)+' · '+esc(l.execNome)+'</span>'+
       (l.erro && !l.enviado ? '<br><span style="color:#fca5a5;font-size:11px">'+esc(l.erro)+'</span>' : '')+
@@ -522,6 +532,56 @@ $('btnSalvar').onclick = salvar;
 $('btnFila').onclick = function(){ pararCamera(); pintaListaFila(); tela('tFila'); };
 $('btnVoltarScan').onclick = function(){ tela('tScan'); iniciarCamera(); };
 $('btnSincronizar').onclick = function(){ sincronizar(); setTimeout(pintaListaFila, 1200); };
+
+/* ---------- copia de seguranca ----------
+   O HubSpot responde 200 mesmo quando descarta uma submissao (protecao anti-spam),
+   entao o app nao tem como confirmar a gravacao. Esta exportacao e a garantia
+   de que nenhum lead se perde: o conteudo pode ser reimportado direto no CRM. */
+$('btnExportar').onclick = function(){
+  var f = fila();
+  if (!f.length){ alert('Nenhum lead captado neste celular ainda.'); return; }
+  var exec = null; try{ exec = JSON.parse(localStorage.getItem(LS_EXEC)||'null'); }catch(e){}
+  var pacote = {
+    evento: 'Projuris Summit 2026',
+    executivo: exec ? exec.nome : '(nao identificado)',
+    exportadoEm: new Date().toISOString(),
+    total: f.length,
+    leads: f
+  };
+  var texto = JSON.stringify(pacote, null, 1);
+  var arquivo = 'leads-summit-' + (exec ? exec.id : 'sem-nome') + '.json';
+
+  var mostrarNaTela = function(){
+    var a = $('areaExport');
+    a.style.display = 'block';
+    a.value = texto;
+    a.focus(); a.select();
+    alert('Não consegui compartilhar automaticamente.\n\n' +
+          'O conteúdo apareceu na tela já selecionado: toque em "Copiar" e mande no grupo.');
+  };
+
+  // 1a opcao: compartilhar como arquivo (WhatsApp, e-mail, Drive...)
+  try {
+    var blob = new Blob([texto], {type:'application/json'});
+    var file = new File([blob], arquivo, {type:'application/json'});
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({ files:[file], title:'Leads Projuris Summit 2026' })
+        .then(function(){ /* ok */ })
+        .catch(function(){ mostrarNaTela(); });
+      return;
+    }
+  } catch(e){}
+
+  // 2a opcao: area de transferencia
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(function(){
+      alert('Cópia de segurança copiada (' + f.length + ' leads).\n' +
+            'Cole no grupo do WhatsApp ou num e-mail para você mesmo.');
+    }).catch(mostrarNaTela);
+    return;
+  }
+  mostrarNaTela();
+};
 $('hExec').onclick = function(){ pararCamera(); tela('tExec'); };
 
 montaExecs(); pintaFila();

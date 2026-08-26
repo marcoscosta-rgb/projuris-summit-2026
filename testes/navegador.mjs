@@ -130,37 +130,65 @@ await pg.locator('#btnProximo').click(); await pg.waitForTimeout(400);
 await pg.locator('#btnManual').click(); await pg.waitForTimeout(250);
 await pg.locator('#fNome').fill('Carlos Souza');
 await pg.locator('#fEmpresa').fill('Souza Contabilidade');
-await pg.locator('#fTel').fill('11912345678');
+await pg.locator('#fEmail').fill('carlos@souzacontabil.com.br');   // com e-mail: precisa ir pela fila
 await pg.locator('#btnSalvar').click();
 await pg.waitForTimeout(900);
 (await pg.locator('#tOk.on').isVisible()) ? ok('captura funciona SEM internet') : bad('perdeu a captura offline');
-const badge = await pg.locator('#hFila').textContent();
-badge.includes('fila') ? ok('contador mostra pendencia: "' + badge.trim() + '"') : bad('contador nao sinalizou fila: ' + badge);
+const badge = (await pg.locator('#hFila').textContent()).trim();
+badge.includes('na fila') ? ok('contador mostra pendencia: "' + badge + '"') : bad('contador nao sinalizou fila: ' + badge);
 enviados.length === 1 ? ok('nada foi enviado enquanto offline') : bad('tentou enviar offline');
+
+// terceiro lead: so telefone, para checar o tratamento de quem nao tem e-mail
+await pg.locator('#btnProximo').click(); await pg.waitForTimeout(400);
+await pg.locator('#btnManual').click(); await pg.waitForTimeout(250);
+await pg.locator('#fNome').fill('Marina Telefone');
+await pg.locator('#fEmpresa').fill('So Telefone Ltda');
+await pg.locator('#fTel').fill('11912345678');
+await pg.locator('#btnSalvar').click(); await pg.waitForTimeout(900);
 const guardados = await pg.evaluate(() => JSON.parse(localStorage.getItem('ps26.fila') || '[]').length);
-guardados === 2 ? ok('os 2 leads estao guardados no aparelho') : bad('leads guardados: ' + guardados);
+guardados === 3 ? ok('os 3 leads estao guardados no aparelho') : bad('leads guardados: ' + guardados);
 
 secao('8) Sincronizacao ao voltar a internet');
 await ctx.setOffline(false);
 await pg.evaluate(() => window.dispatchEvent(new Event('online')));
-await pg.waitForTimeout(1800);
-enviados.length === 2 ? ok('lead pendente subiu sozinho ao voltar a rede') : bad('submissoes apos reconectar: ' + enviados.length);
-if (enviados.length === 2) {
+await pg.waitForTimeout(2500);
+// Sobe o lead offline que tinha e-mail. O que so tem telefone NAO pode ir por aqui:
+// o formulario do HubSpot exige e-mail e recusa enderecos fabricados.
+enviados.length === 2 ? ok('lead com e-mail subiu sozinho ao voltar a rede') : bad('submissoes: ' + enviados.length);
+if (enviados.length >= 2) {
   const c = {}; enviados[1].fields.forEach(f => c[f.name] = f.value);
-  c.ps26_sem_email === 'Sim' ? ok('lead sem e-mail marcado como tal') : bad('ps26_sem_email=' + c.ps26_sem_email);
-  /@projuris-summit-2026\.invalid$/.test(c.email) ? ok('e-mail tecnico gerado: ' + c.email) : bad('e-mail gerado: ' + c.email);
-  c.ps26_captado_por === 'Larissa Cavalcante' ? ok('executivo preservado na fila offline') : bad('executivo perdido: ' + c.ps26_captado_por);
+  c.email === 'carlos@souzacontabil.com.br' ? ok('e-mail correto no envio') : bad('email=' + c.email);
+  c.ps26_captado_por === 'Larissa Cavalcante' ? ok('executivo preservado apos ficar offline') : bad('captado_por=' + c.ps26_captado_por);
 }
-const badge2 = await pg.locator('#hFila').textContent();
-badge2.includes('enviados') ? ok('contador zera: "' + badge2.trim() + '"') : bad('contador apos sync: ' + badge2);
+const semEmailEnviado = enviados.some(e => e.fields.some(f => f.name === 'company' && f.value === 'So Telefone Ltda'));
+!semEmailEnviado ? ok('lead sem e-mail NAO foi enviado ao formulario (correto)') : bad('enviou lead sem e-mail');
+const badge2 = (await pg.locator('#hFila').textContent()).trim();
+badge2.includes('s/ e-mail') ? ok('contador sinaliza o pendente: "' + badge2 + '"') : bad('contador: ' + badge2);
+
+secao('8b) Copia de seguranca');
+await pg.locator('#btnProximo').click(); await pg.waitForTimeout(700);
+await pg.locator('#btnFila').click(); await pg.waitForTimeout(600);
+const lista = await pg.locator('#listaFila').textContent();
+lista.includes('só na cópia') ? ok('lista marca o lead sem e-mail como "só na cópia"') : bad('lista nao sinalizou');
+(await pg.locator('#btnExportar').isVisible()) ? ok('botao de copia de seguranca disponivel') : bad('botao de exportacao ausente');
+const pacote = await pg.evaluate(() => {
+  const f = JSON.parse(localStorage.getItem('ps26.fila') || '[]');
+  return { total: f.length, semEmail: f.filter(l => !l.email).length,
+           execs: [...new Set(f.map(l => l.execNome))] };
+});
+pacote.total === 3 ? ok('os 3 leads seguem guardados') : bad('guardados: ' + pacote.total);
+pacote.semEmail === 1 ? ok('lead sem e-mail preservado para importacao') : bad('sem e-mail: ' + pacote.semEmail);
+pacote.execs.length === 1 && pacote.execs[0] === 'Larissa Cavalcante'
+  ? ok('executivo preservado em todos os leads') : bad('executivos: ' + pacote.execs.join(','));
+await pg.locator('#btnVoltarScan').click(); await pg.waitForTimeout(500);
 
 secao('9) Persistencia entre aberturas do app');
 await pg.reload({ waitUntil: 'networkidle' });
 await pg.waitForTimeout(1200);
 const execDepois = await pg.locator('#hExec').textContent();
 execDepois.includes('Larissa') ? ok('reabrir o app mantem o executivo') : bad('perdeu o executivo ao reabrir');
-const filaDepois = await pg.evaluate(() => JSON.parse(localStorage.getItem('ps26.fila') || '[]').filter(l => l.enviado).length);
-filaDepois === 2 ? ok('historico dos 2 leads preservado') : bad('historico apos reabrir: ' + filaDepois);
+const filaDepois = await pg.evaluate(() => JSON.parse(localStorage.getItem('ps26.fila') || '[]').length);
+filaDepois === 3 ? ok('historico dos 3 leads preservado') : bad('historico apos reabrir: ' + filaDepois);
 
 secao('10) Erros de console ao final');
 const graves = errosConsole.filter(e => !/favicon|manifest|ServiceWorker|sw\.js/i.test(e));
