@@ -1,7 +1,7 @@
 // Configuracao da captacao - Projuris Summit 2026
 window.PS26 = {
   portalId: "2964358",
-  formGuid: "__PREENCHER_APOS_CRIAR_FORM__",
+  formGuid: "7516a8ea-ce4d-4ac7-8084-39322536b259",
   evento: "Projuris Summit 2026",
   executivos: [
     { id: "marcos",   nome: "Marcos Costa" },
