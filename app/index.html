@@ -38,6 +38,9 @@ p.sub{color:var(--dim);font-size:14px;margin:0 0 18px;line-height:1.5}
 label{display:block;font-size:13px;color:var(--dim);margin:14px 0 6px;font-weight:600}
 input,textarea,select{width:100%;padding:15px;font-size:17px;border-radius:12px;
   border:1px solid var(--line);background:var(--card);color:var(--txt);font-family:inherit}
+/* o cabecalho e fixo no topo: sem esta margem, o campo que recebe foco
+   para debaixo dele quando o navegador rola sozinho ate o campo */
+input,textarea,select,label,h2,.chips,.card,.aviso{scroll-margin-top:78px}
 input:focus,textarea:focus,select:focus{outline:2px solid var(--blue);border-color:var(--blue)}
 textarea{min-height:88px;resize:vertical}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
