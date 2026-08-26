@@ -467,7 +467,13 @@ function payload(l){
   add('ps26_observacoes', l.obs);
   add('ps26_capturado_em', l.ts);
   add('ps26_sem_email', l.semEmail ? 'Sim' : 'Não');
-  return { fields: f, context: { pageUri: location.href, pageName: 'Captação Projuris Summit 2026' } };
+  // O HubSpot valida o pageUri contra os dominios conhecidos da conta: uma URL
+  // desconhecida faz a submissao ser aceita com HTTP 200 e descartada em silencio.
+  // Por isso enviamos um endereco do dominio da D4Sign, e nao o da hospedagem.
+  return { fields: f, context: {
+    pageUri: 'https://d4sign.com.br/projuris-summit-2026',
+    pageName: 'Captação — Projuris Summit 2026'
+  } };
 }
 var sincronizando = false;
 function sincronizar(){
