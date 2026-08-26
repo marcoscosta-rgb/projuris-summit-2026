@@ -201,10 +201,13 @@ async function formulario() {
       archivable: true,
       recaptchaEnabled: false,
       notifyContactOwner: false,
-      notifyRecipients: [],
+      // ATENÇÃO: com notifyRecipients vazio o HubSpot aceita as submissões (HTTP 200)
+      // mas não as processa — nenhum contato é criado e nada indica o problema.
+      // Descoberto testando; manter ao menos um destinatário.
+      notifyRecipients: ['92039545'],
       createNewContactForNewEmail: true,
       prePopulateKnownValues: false,
-      allowLinkToResetKnownValues: false,
+      allowLinkToResetKnownValues: true,
       embedType: 'V3',
       postSubmitAction: {
         type: 'thank_you',
