@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a5c6b">
+<meta name="description" content="Manual operacional da ativação da D4Sign no Projuris Summit 2026.">
+<title>Manual de Campo do Summit</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* ============================================================
+   PALETA — tokens completos no :root (tema claro),
+   redefinidos por prefers-color-scheme e por [data-theme].
+   Nenhuma cor é declarada fora daqui.
+   ============================================================ */
+:root{
+  --ground:#fbfcfd;
+  --surface:#ffffff;
+  --surface-2:#f1f4f7;
+  --edge:#dce3ea;
+  --edge-strong:#c3ced9;
+  --ink:#0e141b;
+  --ink-2:#47535f;
+  --ink-3:#5b6673;
+  --accent:#0a5c6b;
+  --accent-ink:#ffffff;
+  --accent-soft:#e2f1f3;
+  --ok:#146c3a;
+  --ok-soft:#e4f4ea;
+  --ok-edge:#9dcdb1;
+  --warn:#8a5406;
+  --warn-soft:#fdf2e0;
+  --warn-edge:#e2bd7e;
+  --stop:#a51f1f;
+  --stop-soft:#fceded;
+  --stop-edge:#e6a5a5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0b1015;
+    --surface:#131a21;
+    --surface-2:#1a232c;
+    --edge:#28333d;
+    --edge-strong:#3a4854;
+    --ink:#e9eff5;
+    --ink-2:#a3b1bd;
+    --ink-3:#93a1ae;
+    --accent:#57c7d4;
+    --accent-ink:#04222a;
+    --accent-soft:#0d2b32;
+    --ok:#5cc98a;
+    --ok-soft:#0f2a1b;
+    --ok-edge:#2c5c3f;
+    --warn:#e8b465;
+    --warn-soft:#2b2010;
+    --warn-edge:#57431f;
+    --stop:#f08c8c;
+    --stop-soft:#2b1414;
+    --stop-edge:#5c2a2a;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0b1015;
+  --surface:#131a21;
+  --surface-2:#1a232c;
+  --edge:#28333d;
+  --edge-strong:#3a4854;
+  --ink:#e9eff5;
+  --ink-2:#a3b1bd;
+  --ink-3:#93a1ae;
+  --accent:#57c7d4;
+  --accent-ink:#04222a;
+  --accent-soft:#0d2b32;
+  --ok:#5cc98a;
+  --ok-soft:#0f2a1b;
+  --ok-edge:#2c5c3f;
+  --warn:#e8b465;
+  --warn-soft:#2b2010;
+  --warn-edge:#57431f;
+  --stop:#f08c8c;
+  --stop-soft:#2b1414;
+  --stop-edge:#5c2a2a;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Source Sans 3", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+.doc{
+  max-width:44rem;
+  margin:0 auto;
+  padding:0 1.15rem 4.5rem;
+}
+
+/* ============================================================
+   CABEÇALHO
+   ============================================================ */
+.topo{padding:2.4rem 0 1.6rem; border-bottom:2px solid var(--ink)}
+.eyebrow{
+  font-family:"IBM Plex Mono", ui-monospace, monospace;
+  font-size:.7rem; font-weight:500;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 .7rem;
+}
+h1{
+  font-family:"Archivo", system-ui, sans-serif;
+  font-weight:800;
+  font-size:clamp(2rem, 7.5vw, 3rem);
+  line-height:1.02;
+  letter-spacing:-.025em;
+  margin:0 0 .6rem;
+  text-wrap:balance;
+}
+.deck{
+  margin:0 0 1.3rem;
+  font-size:1.06rem;
+  color:var(--ink-2);
+  max-width:34rem;
+}
+/* Ficha do evento: grid de rótulo+valor. Cada célula é um bloco
+   fechado — nada de texto solto dentro de contêiner flex. */
+.ficha{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap:.9rem 1.4rem;
+  margin:0;
+  padding:0;
+}
+.ficha > div{min-width:0}
+.ficha dt{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.66rem; font-weight:500;
+  letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3);
+  margin:0 0 .15rem;
+}
+.ficha dd{
+  margin:0;
+  font-family:"Archivo", sans-serif;
+  font-weight:600; font-size:.98rem;
+  line-height:1.3;
+  color:var(--ink);
+}
+
+/* ============================================================
+   LINKS DE AÇÃO
+   ============================================================ */
+.acoes{display:grid; gap:.7rem; margin:1.7rem 0 0}
+a.acao{
+  display:block;                 /* bloco, não flex: texto interno nunca quebra */
+  position:relative;
+  text-decoration:none;
+  color:var(--ink);
+  background:var(--surface);
+  border:1px solid var(--edge-strong);
+  border-left:4px solid var(--accent);
+  border-radius:.3rem;
+  padding:.95rem 1.05rem;
+  transition:border-color .15s ease, background .15s ease;
+}
+a.acao:hover{background:var(--surface-2); border-color:var(--accent)}
+a.acao:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+a.acao.destaque{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:var(--accent-ink);
+}
+a.acao.destaque:hover{background:var(--accent); filter:brightness(1.08)}
+a.acao .rot{
+  display:block;
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.64rem; font-weight:600;
+  letter-spacing:.15em; text-transform:uppercase;
+  opacity:.75;
+  margin-bottom:.2rem;
+}
+a.acao .nome{
+  display:block;
+  font-family:"Archivo", sans-serif;
+  font-weight:700; font-size:1.1rem; line-height:1.25;
+  margin-bottom:.25rem;
+}
+a.acao .url{
+  display:block;
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.72rem;
+  line-height:1.4;
+  opacity:.8;
+  overflow-wrap:anywhere;
+}
+
+/* ============================================================
+   SEÇÕES
+   ============================================================ */
+section{padding:2.3rem 0 0}
+section + section{border-top:1px solid var(--edge); margin-top:2.3rem}
+.cab{margin:0 0 1.3rem}
+.cab .idx{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.68rem; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:var(--accent);
+  display:block; margin-bottom:.35rem;
+}
+h2{
+  font-family:"Archivo", sans-serif;
+  font-weight:700;
+  font-size:clamp(1.3rem, 4.5vw, 1.6rem);
+  line-height:1.15;
+  letter-spacing:-.015em;
+  margin:0 0 .35rem;
+  text-wrap:balance;
+}
+.cab p{margin:0; color:var(--ink-2); font-size:1rem; max-width:33rem}
+
+/* ============================================================
+   LISTAS
+   Marcador posicionado em absoluto sobre padding-left.
+   O <li> permanece em fluxo inline normal: negrito, links e
+   texto corrido nunca podem virar colunas.
+   ============================================================ */
+ol.passos, ul.itens{margin:0; padding:0; list-style:none}
+ol.passos{counter-reset:passo}
+ol.passos > li, ul.itens > li{
+  position:relative;
+  padding-left:2.5rem;
+  margin-bottom:1.05rem;
+}
+ol.passos > li:last-child, ul.itens > li:last-child{margin-bottom:0}
+ol.passos > li{counter-increment:passo}
+ol.passos > li::before{
+  content:counter(passo);
+  position:absolute;
+  left:0; top:.12rem;
+  width:1.65rem; height:1.65rem;
+  border-radius:50%;
+  background:var(--accent);
+  color:var(--accent-ink);
+  font-family:"Archivo", sans-serif;
+  font-weight:700; font-size:.84rem;
+  line-height:1.65rem;
+  text-align:center;
+}
+ul.itens > li::before{
+  content:"";
+  position:absolute;
+  left:.55rem; top:.72rem;
+  width:.42rem; height:.42rem;
+  border-radius:50%;
+  background:var(--accent);
+}
+li strong{font-weight:700; color:var(--ink)}
+
+/* ============================================================
+   AVISOS
+   ============================================================ */
+.aviso{
+  margin:1.3rem 0 0;
+  padding:.9rem 1rem;
+  border-radius:.3rem;
+  border:1px solid var(--warn-edge);
+  border-left:4px solid var(--warn);
+  background:var(--warn-soft);
+  font-size:.97rem;
+  line-height:1.55;
+}
+.aviso .rot{
+  display:block;
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.64rem; font-weight:600;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:var(--warn);
+  margin-bottom:.3rem;
+}
+.aviso.critico{border-color:var(--stop-edge); border-left-color:var(--stop); background:var(--stop-soft)}
+.aviso.critico .rot{color:var(--stop)}
+.aviso p{margin:0}
+.aviso p + p{margin-top:.55rem}
+
+/* ============================================================
+   LEGENDA DO CONTADOR
+   Grid de duas colunas: selo e explicação, cada um num bloco.
+   ============================================================ */
+.legenda{display:grid; gap:.55rem; margin:0}
+.linha{
+  display:grid;
+  grid-template-columns:minmax(6.5rem, auto) 1fr;
+  gap:.85rem;
+  align-items:start;
+  padding:.75rem .9rem;
+  background:var(--surface);
+  border:1px solid var(--edge);
+  border-radius:.3rem;
+}
+.selo{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.75rem; font-weight:600;
+  padding:.25rem .5rem;
+  border-radius:999px;
+  text-align:center;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.selo.v{background:var(--ok-soft); color:var(--ok); border:1px solid var(--ok-edge)}
+.selo.a{background:var(--warn-soft); color:var(--warn); border:1px solid var(--warn-edge)}
+.selo.n{background:var(--surface-2); color:var(--ink-2); border:1px solid var(--edge-strong)}
+.linha .txt{margin:0; font-size:.96rem; color:var(--ink-2); min-width:0}
+.linha .txt b{color:var(--ink); font-weight:700}
+
+/* ============================================================
+   RESUMO TÉCNICO
+   ============================================================ */
+.tec{
+  margin:1.4rem 0 0;
+  border:1px solid var(--edge);
+  border-radius:.3rem;
+  overflow:hidden;
+}
+.tec .item{
+  display:grid;
+  grid-template-columns:minmax(7rem, 11rem) 1fr;
+  gap:.9rem;
+  padding:.7rem .9rem;
+  background:var(--surface);
+  border-bottom:1px solid var(--edge);
+}
+.tec .item:last-child{border-bottom:0}
+.tec .k{
+  margin:0;
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.72rem; font-weight:500;
+  letter-spacing:.05em;
+  color:var(--ink-3);
+  padding-top:.15rem;
+}
+.tec .v{margin:0; font-size:.95rem; min-width:0; overflow-wrap:anywhere}
+.tec .v code{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.86em;
+  background:var(--surface-2);
+  border:1px solid var(--edge);
+  padding:.06rem .3rem;
+  border-radius:.2rem;
+}
+
+/* ============================================================
+   RODAPÉ
+   ============================================================ */
+footer{
+  margin-top:2.6rem;
+  padding-top:1.4rem;
+  border-top:2px solid var(--ink);
+  color:var(--ink-3);
+  font-size:.9rem;
+}
+footer p{margin:0 0 .35rem}
+footer .ids{
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.74rem;
+  color:var(--ink-3);
+}
+
+@media (max-width:24rem){
+  body{font-size:16px}
+  .doc{padding:0 .9rem 3.5rem}
+  ol.passos > li, ul.itens > li{padding-left:2.2rem}
+  .linha{grid-template-columns:1fr; gap:.45rem}
+  .selo{justify-self:start}
+  .tec .item{grid-template-columns:1fr; gap:.2rem}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important}}
+</style>
+</head>
+<body>
+
+<div class="doc">
+
+  <header class="topo">
+    <p class="eyebrow">D4Sign · ativação das garrafas personalizadas</p>
+    <h1>Manual de Campo</h1>
+    <p class="deck">O que cada um dos cinco precisa fazer para transformar uma garrafa
+      gravada num lead dentro do pipeline, com o seu nome carimbado nele.</p>
+    <dl class="ficha">
+      <div><dt>Data</dt><dd>Quinta, 27 de agosto</dd></div>
+      <div><dt>Horário</dt><dd>08h30 às 18h</dd></div>
+      <div><dt>Local</dt><dd>Cubo Itaú, Vila Olímpia</dd></div>
+      <div><dt>Público</dt><dd>≈900 ao longo do dia</dd></div>
+    </dl>
+
+    <div class="acoes">
+      <a class="acao destaque" href="https://marcoscosta-rgb.github.io/projuris-summit-2026/app/">
+        <span class="rot">ferramenta principal</span>
+        <span class="nome">Leitor de crachá</span>
+        <span class="url">marcoscosta-rgb.github.io/projuris-summit-2026/app/</span>
+      </a>
+      <a class="acao" href="https://marcoscosta-rgb.github.io/projuris-summit-2026/form/">
+        <span class="rot">se o leitor falhar</span>
+        <span class="nome">Formulário de reserva</span>
+        <span class="url">marcoscosta-rgb.github.io/projuris-summit-2026/form/</span>
+      </a>
+    </div>
+  </header>
+
+  <section>
+    <div class="cab">
+      <span class="idx">Etapa 1 · hoje, antes do evento</span>
+      <h2>Deixar o celular pronto</h2>
+      <p>Cinco minutos agora, com internet boa, evitam perder lead amanhã.</p>
+    </div>
+    <ol class="passos">
+      <li>Abra o <strong>link destacado</strong> acima no celular que você vai levar.</li>
+      <li>Toque no botão de compartilhar do navegador e escolha <strong>“Adicionar à Tela
+        de Início”</strong>. O ícone <strong>D4 SUMMIT</strong> passa a aparecer junto com
+        seus outros aplicativos.</li>
+      <li>Abra pelo ícone e <strong>escolha o seu nome</strong> na lista. Ele fica gravado
+        nesse aparelho, e todo lead que sair dele já vem marcado como seu.</li>
+      <li>Quando o celular pedir permissão para usar a câmera, toque em
+        <strong>Permitir</strong>.</li>
+      <li>Faça uma captura de teste com qualquer QR Code e confirme que o contador no
+        topo mostra <strong>“1 enviados”</strong>. Depois avise o Marcos para apagar.</li>
+    </ol>
+    <div class="aviso">
+      <span class="rot">por que instalar em vez de só abrir o link</span>
+      <p>Instalado na tela de início, o app continua funcionando <strong>sem
+        internet</strong>. O Cubo tem áreas de sinal fraco e o público circula o dia
+        inteiro — a captação não pode depender da rede.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="cab">
+      <span class="idx">Etapa 2 · durante o evento</span>
+      <h2>Captar na abordagem</h2>
+      <p>O crachá é do Sympla e o QR dele carrega apenas um código, sem nome nem empresa.
+        O app já contorna isso: guarda o código e abre os campos para você completar.</p>
+    </div>
+    <ul class="itens">
+      <li>Aponte a câmera para o crachá. A leitura é automática e o celular vibra
+        quando reconhece.</li>
+      <li>Preencha <strong>nome</strong> e <strong>empresa</strong> — os dois únicos
+        campos obrigatórios.</li>
+      <li>Consiga <strong>e-mail ou telefone</strong>. Sem um dos dois o lead não tem
+        como ser retomado depois, e o app não deixa salvar.</li>
+      <li>A qualificação é toda por botões: ramo, porte, se já usa assinatura eletrônica
+        e volume de contratos. Toque no que souber e siga — nada aí é obrigatório.</li>
+      <li>Use <strong>Observações</strong> para o que só você ouviu: a dor citada, a
+        urgência, o próximo passo combinado. É o que sustenta o follow-up depois.</li>
+    </ul>
+    <div class="aviso">
+      <span class="rot">quando o QR não lê</span>
+      <p>Toque em <strong>“Digitar sem ler o QR”</strong> e preencha na mão. Se o app
+        inteiro travar, use o <strong>formulário de reserva</strong> — só lembre de
+        escolher o seu nome no primeiro campo dele, senão o lead entra sem dono.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="cab">
+      <span class="idx">Referência rápida</span>
+      <h2>O contador no topo da tela</h2>
+      <p>É o único indicador que você precisa acompanhar durante o dia.</p>
+    </div>
+    <div class="legenda">
+      <div class="linha">
+        <span class="selo v">3 enviados</span>
+        <p class="txt">Tudo certo. Já está no HubSpot.</p>
+      </div>
+      <div class="linha">
+        <span class="selo a">2 na fila</span>
+        <p class="txt">Sem sinal no momento. Estão salvos no celular e <b>sobem sozinhos</b>
+          quando a internet voltar. Não precisa fazer nada.</p>
+      </div>
+      <div class="linha">
+        <span class="selo n">5 · 1 s/ e-mail</span>
+        <p class="txt">Um lead veio só com telefone. Fica guardado e entra no CRM pela
+          cópia de segurança do fim do dia.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cab">
+      <span class="idx">Etapa 3 · antes de ir embora</span>
+      <h2>Fechar o dia</h2>
+      <p>Leva um minuto e é o que garante que nenhum lead se perca.</p>
+    </div>
+    <ol class="passos">
+      <li>Confira se o contador está <strong>verde</strong>. Se ainda houver algo “na
+        fila”, procure um ponto com sinal melhor e toque em <strong>“Tentar enviar
+        agora”</strong>.</li>
+      <li>Toque em <strong>“Ver leads pendentes de envio”</strong> e depois em
+        <strong>“Exportar cópia de segurança”</strong>.</li>
+      <li>Mande o arquivo no grupo do time. Ele contém todos os leads daquele celular,
+        inclusive os que já subiram.</li>
+    </ol>
+    <div class="aviso critico">
+      <span class="rot">não pule este passo</span>
+      <p>Existem situações raras em que o HubSpot responde “recebido” e mesmo assim
+        descarta o envio, sem sinalizar nada. A cópia de segurança é a única forma de
+        recuperar um lead nesse caso.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="cab">
+      <span class="idx">Bastidores</span>
+      <h2>O que já está montado</h2>
+      <p>Nada aqui exige ação de vocês durante o evento.</p>
+    </div>
+    <ul class="itens">
+      <li>Pipeline <strong>Projuris Summit 2026</strong>, com oito etapas, começando em
+        “Lead captado no evento”.</li>
+      <li>Cada lead vira um negócio <strong>já atribuído a quem captou</strong> — é assim
+        que cada um enxerga os seus.</li>
+      <li>O <strong>código do crachá</strong> fica guardado em cada lead. É a chave para
+        cruzar com o mailing que a organização entrega depois do evento, e transformar
+        900 nomes soltos em leads com dono e contexto.</li>
+      <li>O lead aparece no CRM cerca de <strong>um minuto</strong> depois do envio. Se
+        não apareceu na hora, está tudo bem — é só esperar.</li>
+    </ul>
+    <div class="tec">
+      <div class="item"><p class="k">pipeline</p><p class="v">Projuris Summit 2026 · <code>929744040</code></p></div>
+      <div class="item"><p class="k">campos do evento</p><p class="v">13, com prefixo <code>ps26_</code></p></div>
+      <div class="item"><p class="k">executivos</p><p class="v">Marcos, Simone, Amanda, Leonardo, Larissa e Marcella</p></div>
+      <div class="item"><p class="k">acesso posterior</p><p class="v">Thais Sakuma, Sabrina Bertoluci e Marcella Figueiredo</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Qualquer problema no dia do evento, chame o Marcos.</p>
+    <p class="ids">portal 2964358 · formulário 7516a8ea</p>
+  </footer>
+
+</div>
+
+</body>
+</html>
