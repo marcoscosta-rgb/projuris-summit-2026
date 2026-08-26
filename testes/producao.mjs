@@ -66,11 +66,11 @@ await pg.locator('#btnProximo').click(); await pg.waitForTimeout(400);
 await pg.locator('#btnManual').click(); await pg.waitForTimeout(300);
 await pg.locator('#fNome').fill('Teste Offline');
 await pg.locator('#fEmpresa').fill('Sem Rede');
-await pg.locator('#fTel').fill('11900000000');
+await pg.locator('#fEmail').fill('offline.' + marca.toLowerCase() + '@exemplo-d4sign-teste.com');
 await pg.locator('#btnSalvar').click(); await pg.waitForTimeout(1200);
 (await pg.locator('#tOk.on').isVisible()) ? OK('captura funciona sem internet') : NO('perdeu captura offline');
 const b2 = (await pg.locator('#hFila').textContent()).trim();
-b2.includes('fila') ? OK('sinaliza pendencia: "' + b2 + '"') : NO('badge offline: ' + b2);
+b2.includes('na fila') ? OK('sinaliza pendencia: "' + b2 + '"') : NO('badge offline: ' + b2);
 await ctx.setOffline(false);
 
 console.log('\n7) Pagina de fallback com o formulario');
