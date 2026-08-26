@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#0b1220">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icone.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Captação D4Sign — Projuris Summit 2026</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --line:#2a3752; --txt:#eef3fb; --dim:#93a4c0; --ac:#22c55e; --ac2:#16a34a;
+  --warn:#f59e0b; --err:#ef4444; --blue:#3b82f6;
+}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  height:100%;overscroll-behavior:none}
+body{display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+header{position:sticky;top:0;z-index:20;background:#0b1220ee;backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  display:flex;align-items:center;gap:10px}
+header .quem{flex:1;min-width:0}
+header .quem b{display:block;font-size:15px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .quem span{font-size:11px;color:var(--dim)}
+.badge{font-size:11px;padding:5px 9px;border-radius:999px;background:var(--card2);
+  border:1px solid var(--line);white-space:nowrap}
+.badge.pend{background:#78350f;border-color:var(--warn);color:#fde68a}
+.badge.ok{background:#14532d;border-color:var(--ac);color:#bbf7d0}
+main{flex:1;padding:16px;max-width:640px;width:100%;margin:0 auto}
+.tela{display:none} .tela.on{display:block}
+h1{font-size:20px;margin:0 0 6px} h2{font-size:16px;margin:22px 0 10px;color:var(--dim);
+  text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+p.sub{color:var(--dim);font-size:14px;margin:0 0 18px;line-height:1.5}
+label{display:block;font-size:13px;color:var(--dim);margin:14px 0 6px;font-weight:600}
+input,textarea,select{width:100%;padding:15px;font-size:17px;border-radius:12px;
+  border:1px solid var(--line);background:var(--card);color:var(--txt);font-family:inherit}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--blue);border-color:var(--blue)}
+textarea{min-height:88px;resize:vertical}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  padding:17px;font-size:17px;font-weight:700;border-radius:14px;border:0;
+  background:var(--ac);color:#04240f;cursor:pointer;font-family:inherit;margin-top:14px}
+.btn:active{transform:scale(.985)}
+.btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+.btn.ghost{background:transparent;color:var(--dim);border:1px dashed var(--line)}
+.btn:disabled{opacity:.5}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:11px 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--txt);font-size:14px;cursor:pointer;font-family:inherit}
+.chip.sel{background:var(--ac);color:#04240f;border-color:var(--ac);font-weight:700}
+#video{width:100%;border-radius:16px;background:#000;display:block;aspect-ratio:3/4;object-fit:cover}
+.scanwrap{position:relative}
+.mira{position:absolute;inset:14% 10%;border:3px solid var(--ac);border-radius:16px;
+  box-shadow:0 0 0 100vmax #0b122099;pointer-events:none}
+.leitura{margin-top:12px;padding:12px;border-radius:12px;background:var(--card);
+  border:1px solid var(--line);font-size:13px;color:var(--dim);text-align:center;min-height:44px;
+  display:flex;align-items:center;justify-content:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.card .rot{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.card .val{font-size:16px;font-weight:700;margin-top:3px;word-break:break-word}
+.aviso{padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.5;margin:12px 0}
+.aviso.w{background:#422006;border:1px solid var(--warn);color:#fde68a}
+.aviso.i{background:#172554;border:1px solid var(--blue);color:#bfdbfe}
+.aviso.e{background:#450a0a;border:1px solid var(--err);color:#fecaca}
+.ok-big{text-align:center;padding:40px 0}
+.ok-big .mark{font-size:64px;line-height:1}
+.ok-big h1{margin-top:14px}
+.linha{display:flex;gap:10px} .linha>*{flex:1}
+.rodape{text-align:center;color:var(--dim);font-size:12px;padding:20px 0 34px}
+.fila-item{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.mini{font-size:12px;color:var(--dim);margin-top:6px;line-height:1.45}
+</style>
+</head>
+<body>
+<header>
+  <div class="quem"><b id="hExec">—</b><span>Projuris Summit 2026 · 27/08</span></div>
+  <div class="badge" id="hFila">—</div>
+</header>
+
+<main>
+  <!-- ===== TELA 1: quem e voce ===== -->
+  <section class="tela on" id="tExec">
+    <h1>Quem está captando?</h1>
+    <p class="sub">Escolha seu nome. Ele fica gravado neste celular e carimba automaticamente
+      todo lead que você captar hoje — você não precisa escolher de novo.</p>
+    <div id="listaExec"></div>
+  </section>
+
+  <!-- ===== TELA 2: leitura ===== -->
+  <section class="tela" id="tScan">
+    <div class="scanwrap">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="mira"></div>
+    </div>
+    <div class="leitura" id="statusScan">Iniciando a câmera…</div>
+    <button class="btn sec" id="btnManual">Digitar sem ler o QR</button>
+    <button class="btn ghost" id="btnFila">Ver leads pendentes de envio</button>
+    <div class="rodape">Aponte para o QR Code do crachá.<br>A leitura é automática.</div>
+  </section>
+
+  <!-- ===== TELA 3: ficha ===== -->
+  <section class="tela" id="tFicha">
+    <h1>Dados do lead</h1>
+    <div id="boxCodigo"></div>
+    <div id="avisoParse"></div>
+
+    <label for="fNome">Nome completo *</label>
+    <input id="fNome" autocomplete="off" autocapitalize="words" placeholder="Nome de quem você conversou">
+
+    <label for="fEmpresa">Empresa *</label>
+    <input id="fEmpresa" autocomplete="off" autocapitalize="words" placeholder="Onde a pessoa trabalha">
+
+    <label for="fCargo">Cargo</label>
+    <input id="fCargo" autocomplete="off" autocapitalize="words" placeholder="Ex.: Sócio, Gerente Jurídico">
+
+    <label for="fEmail">E-mail</label>
+    <input id="fEmail" type="email" inputmode="email" autocomplete="off"
+           autocapitalize="off" spellcheck="false" placeholder="melhor forma de retomar depois">
+
+    <label for="fTel">Telefone / WhatsApp</label>
+    <input id="fTel" type="tel" inputmode="tel" autocomplete="off" placeholder="(11) 90000-0000">
+    <div class="mini" id="avisoContato"></div>
+
+    <h2>Qualificação</h2>
+    <label>Ramo da empresa</label>
+    <div class="chips" id="cRamo"></div>
+
+    <label>Número de funcionários</label>
+    <div class="chips" id="cFunc"></div>
+
+    <label>Já usa assinatura eletrônica?</label>
+    <div class="chips" id="cAssin"></div>
+    <div id="wrapPlat" style="display:none">
+      <label for="fPlat">Qual plataforma?</label>
+      <input id="fPlat" autocomplete="off" placeholder="Ex.: DocuSign, Clicksign, Autentique">
+    </div>
+
+    <label>Contratos enviados por mês</label>
+    <div class="chips" id="cContr"></div>
+
+    <label for="fObs">Observações (o que foi conversado)</label>
+    <textarea id="fObs" placeholder="Dor mencionada, urgência, próximo passo combinado…"></textarea>
+
+    <button class="btn" id="btnSalvar">Salvar lead</button>
+    <button class="btn sec" id="btnCancelar">Cancelar</button>
+    <div class="rodape">O lead é salvo neste celular na hora e enviado ao HubSpot<br>
+      assim que houver internet. Nada se perde se o sinal cair.</div>
+  </section>
+
+  <!-- ===== TELA 4: confirmacao ===== -->
+  <section class="tela" id="tOk">
+    <div class="ok-big">
+      <div class="mark">✅</div>
+      <h1 id="okNome">Lead salvo</h1>
+      <p class="sub" id="okDetalhe"></p>
+    </div>
+    <button class="btn" id="btnProximo">Ler próximo crachá</button>
+  </section>
+
+  <!-- ===== TELA 5: fila ===== -->
+  <section class="tela" id="tFila">
+    <h1>Leads pendentes</h1>
+    <p class="sub">Ficam guardados neste celular até subirem para o HubSpot.</p>
+    <div id="listaFila"></div>
+    <button class="btn" id="btnSincronizar">Tentar enviar agora</button>
+    <button class="btn sec" id="btnVoltarScan">Voltar para a câmera</button>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="jsqr.js"></script>
+<script>
+(function(){
+"use strict";
+var C = window.PS26;
+var LS_EXEC = 'ps26.exec', LS_FILA = 'ps26.fila';
+var stream=null, rafId=null, lendo=false, ultimoQR='', ultimoTs=0;
+var atual = null; // lead em edicao
+
+function $(id){ return document.getElementById(id); }
+function tela(id){
+  ['tExec','tScan','tFicha','tOk','tFila'].forEach(function(t){
+    $(t).classList.toggle('on', t===id);
+  });
+  window.scrollTo(0,0);
+}
+
+/* ---------- fila local ---------- */
+function fila(){ try{ return JSON.parse(localStorage.getItem(LS_FILA)||'[]'); }catch(e){ return []; } }
+function setFila(f){ localStorage.setItem(LS_FILA, JSON.stringify(f)); pintaFila(); }
+function pintaFila(){
+  var f = fila(), pend = f.filter(function(x){ return !x.enviado; }).length;
+  var b = $('hFila');
+  if (pend === 0){ b.className='badge ok'; b.textContent = f.length ? f.length+' enviados' : 'pronto'; }
+  else { b.className='badge pend'; b.textContent = pend+' na fila'; }
+}
+
+/* ---------- parser do QR ---------- */
+function parseQR(txt){
+  var r = { nome:'', email:'', telefone:'', empresa:'', cargo:'', codigo:'', formato:'desconhecido', bruto:txt };
+  if (!txt) return r;
+  var t = txt.trim();
+
+  // vCard
+  if (/BEGIN:VCARD/i.test(t)){
+    r.formato = 'vcard';
+    var g = function(re){ var m = t.match(re); return m ? m[1].trim() : ''; };
+    r.nome     = g(/^FN:(.+)$/mi);
+    if (!r.nome){
+      var n = g(/^N:(.+)$/mi);
+      if (n){ var p = n.split(';'); r.nome = ((p[1]||'')+' '+(p[0]||'')).trim(); }
+    }
+    r.email    = g(/^EMAIL[^:]*:(.+)$/mi);
+    r.telefone = g(/^TEL[^:]*:(.+)$/mi);
+    r.empresa  = g(/^ORG:(.+)$/mi).split(';')[0];
+    r.cargo    = g(/^TITLE:(.+)$/mi);
+    return r;
+  }
+  // MECARD
+  if (/^MECARD:/i.test(t)){
+    r.formato = 'mecard';
+    var gm = function(k){ var m = t.match(new RegExp(k+':([^;]*);','i')); return m ? m[1].trim() : ''; };
+    var nm = gm('N'); if (nm){ var pp = nm.split(','); r.nome = (pp.length>1 ? (pp[1]+' '+pp[0]) : nm).trim(); }
+    r.email = gm('EMAIL'); r.telefone = gm('TEL'); r.empresa = gm('ORG');
+    return r;
+  }
+  // JSON
+  if (/^[\[{]/.test(t)){
+    try{
+      var o = JSON.parse(t); r.formato='json';
+      var pick = function(ks){ for (var i=0;i<ks.length;i++){ if (o[ks[i]]) return String(o[ks[i]]); } return ''; };
+      r.nome     = pick(['nome','name','fullName','participante','attendee']);
+      r.email    = pick(['email','mail','e-mail']);
+      r.telefone = pick(['telefone','phone','celular','tel','mobile']);
+      r.empresa  = pick(['empresa','company','organizacao','org']);
+      r.cargo    = pick(['cargo','jobTitle','title','role']);
+      r.codigo   = pick(['codigo','code','id','ticket','ingresso']);
+      return r;
+    }catch(e){ /* segue */ }
+  }
+  // URL
+  if (/^https?:\/\//i.test(t)){
+    r.formato = 'url';
+    try{
+      var u = new URL(t), q = u.searchParams;
+      var pk = function(ks){ for (var i=0;i<ks.length;i++){ var v=q.get(ks[i]); if (v) return v; } return ''; };
+      r.nome     = pk(['nome','name','n','fullname']);
+      r.email    = pk(['email','mail','e']);
+      r.telefone = pk(['telefone','phone','tel','celular']);
+      r.empresa  = pk(['empresa','company','org','c']);
+      r.cargo    = pk(['cargo','title','role']);
+      var segs = u.pathname.split('/').filter(Boolean);
+      r.codigo   = pk(['codigo','code','id','ticket']) || (segs.length ? segs[segs.length-1] : '');
+    }catch(e){}
+    if (!r.codigo) r.codigo = t;
+    return r;
+  }
+  // delimitado por ; ou |
+  if (/[;|]/.test(t) && t.split(/[;|]/).length >= 3){
+    r.formato = 'delimitado';
+    var partes = t.split(/[;|]/).map(function(s){ return s.trim(); });
+    partes.forEach(function(p){
+      if (!r.email && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(p)) r.email = p;
+      else if (!r.telefone && /^[\d\s()+-]{8,}$/.test(p)) r.telefone = p;
+    });
+    var rest = partes.filter(function(p){ return p!==r.email && p!==r.telefone && p; });
+    r.nome = rest[0]||''; r.empresa = rest[1]||''; r.cargo = rest[2]||'';
+    return r;
+  }
+  // codigo puro (caso Sympla: ex. UT9UBBGC7L)
+  if (/^[A-Za-z0-9._-]{4,40}$/.test(t)){
+    r.formato = 'codigo'; r.codigo = t.toUpperCase(); return r;
+  }
+  // texto solto: primeira linha vira nome
+  r.formato = 'texto';
+  var linhas = t.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+  r.nome = linhas[0]||''; r.empresa = linhas[1]||'';
+  var em = t.match(/[^@\s]+@[^@\s]+\.[a-z]{2,}/i); if (em) r.email = em[0];
+  return r;
+}
+
+/* ---------- camera ---------- */
+function pararCamera(){
+  lendo = false;
+  if (rafId) cancelAnimationFrame(rafId), rafId=null;
+  if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream=null; }
+}
+function iniciarCamera(){
+  var v = $('video'), st = $('statusScan');
+  st.textContent = 'Iniciando a câmera…';
+  navigator.mediaDevices.getUserMedia({
+    video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} }, audio:false
+  }).then(function(s){
+    stream = s; v.srcObject = s; v.setAttribute('playsinline','');
+    return v.play();
+  }).then(function(){
+    st.textContent = 'Procurando QR Code…';
+    lendo = true; loopLeitura();
+  }).catch(function(err){
+    st.innerHTML = '<span style="color:#fecaca">Câmera bloqueada: '+(err.name||err)+
+      '<br>Use “Digitar sem ler o QR”.</span>';
+  });
+}
+var det = null;
+if ('BarcodeDetector' in window){
+  try{ det = new window.BarcodeDetector({formats:['qr_code']}); }catch(e){ det = null; }
+}
+function loopLeitura(){
+  if (!lendo) return;
+  var v = $('video');
+  if (v.readyState === v.HAVE_ENOUGH_DATA){
+    if (det){
+      det.detect(v).then(function(cods){
+        if (cods && cods.length) achou(cods[0].rawValue);
+      }).catch(function(){ det = null; });
+    } else {
+      var cv = document.createElement('canvas');
+      var w = Math.min(v.videoWidth, 720), h = Math.round(v.videoHeight * (w/v.videoWidth));
+      if (w && h){
+        cv.width=w; cv.height=h;
+        var cx = cv.getContext('2d', {willReadFrequently:true});
+        cx.drawImage(v,0,0,w,h);
+        var img = cx.getImageData(0,0,w,h);
+        var res = window.jsQR(img.data, w, h, {inversionAttempts:'attemptBoth'});
+        if (res && res.data) achou(res.data);
+      }
+    }
+  }
+  rafId = requestAnimationFrame(loopLeitura);
+}
+function achou(txt){
+  var agora = Date.now();
+  if (txt === ultimoQR && agora - ultimoTs < 4000) return; // anti-repeticao
+  ultimoQR = txt; ultimoTs = agora;
+  try{ navigator.vibrate && navigator.vibrate(120); }catch(e){}
+  pararCamera();
+  abrirFicha(parseQR(txt), 'qrcode');
+}
+
+/* ---------- ficha ---------- */
+var sel = { ramo:'', func:'', assin:'', contr:'' };
+function chips(cont, itens, chave, aoMudar){
+  var el = $(cont); el.innerHTML='';
+  itens.forEach(function(it){
+    var b = document.createElement('button');
+    b.type='button'; b.className='chip'; b.textContent=it;
+    b.onclick = function(){
+      sel[chave] = (sel[chave]===it ? '' : it);
+      Array.prototype.forEach.call(el.children, function(c){
+        c.classList.toggle('sel', c.textContent===sel[chave]);
+      });
+      if (aoMudar) aoMudar(sel[chave]);
+    };
+    el.appendChild(b);
+  });
+}
+function abrirFicha(p, origem){
+  atual = { origem: origem, codigo: p.codigo||'', bruto: p.bruto||'', formato: p.formato||'manual' };
+  $('fNome').value = p.nome||''; $('fEmpresa').value = p.empresa||'';
+  $('fCargo').value = p.cargo||''; $('fEmail').value = p.email||'';
+  $('fTel').value = p.telefone||''; $('fPlat').value=''; $('fObs').value='';
+  sel = { ramo:'', func:'', assin:'', contr:'' };
+  chips('cRamo', C.ramos, 'ramo');
+  chips('cFunc', C.funcionarios, 'func');
+  chips('cAssin', ['Sim','Não','Não sei'], 'assin', function(v){
+    $('wrapPlat').style.display = (v==='Sim' ? 'block' : 'none');
+  });
+  chips('cContr', C.contratos, 'contr');
+  $('wrapPlat').style.display='none';
+
+  var bc = $('boxCodigo');
+  bc.innerHTML = atual.codigo
+    ? '<div class="card"><div class="rot">Código do crachá lido</div><div class="val">'+
+      esc(atual.codigo)+'</div></div>' : '';
+
+  var av = $('avisoParse');
+  if (origem === 'qrcode' && p.formato === 'codigo'){
+    av.innerHTML = '<div class="aviso w"><b>O crachá só trouxe o código.</b><br>' +
+      'Ele foi guardado e serve para cruzar com o mailing depois. ' +
+      'Preencha nome e empresa — leva poucos segundos.</div>';
+  } else if (origem === 'qrcode' && (p.nome || p.email)){
+    av.innerHTML = '<div class="aviso i">Dados lidos do crachá automaticamente. Confira e complete.</div>';
+  } else if (origem === 'qrcode'){
+    av.innerHTML = '<div class="aviso w">O QR foi lido mas não trouxe dados reconhecíveis. ' +
+      'O conteúdo foi guardado; preencha os campos abaixo.</div>';
+  } else { av.innerHTML=''; }
+
+  $('avisoContato').textContent =
+    'Preencha e-mail ou telefone — sem um dos dois o lead não tem como ser retomado depois.';
+  tela('tFicha');
+  setTimeout(function(){ if(!$('fNome').value) $('fNome').focus(); }, 250);
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
+  return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+function salvar(){
+  var nome = $('fNome').value.trim(), empresa = $('fEmpresa').value.trim();
+  var email = $('fEmail').value.trim(), tel = $('fTel').value.trim();
+  if (!nome){ alert('Preencha o nome.'); $('fNome').focus(); return; }
+  if (!empresa){ alert('Preencha a empresa.'); $('fEmpresa').focus(); return; }
+  if (!email && !tel){
+    alert('Preencha e-mail ou telefone.\nSem um contato o lead não pode ser trabalhado depois.');
+    $('fEmail').focus(); return;
+  }
+  if (email && !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)){
+    alert('O e-mail parece incompleto: ' + email); $('fEmail').focus(); return;
+  }
+  var exec = JSON.parse(localStorage.getItem(LS_EXEC)||'null');
+  var lead = {
+    id: 'L' + Date.now() + Math.random().toString(36).slice(2,7),
+    ts: new Date().toISOString(),
+    execId: exec.id, execNome: exec.nome,
+    origem: atual.origem, formato: atual.formato,
+    codigo: atual.codigo, bruto: atual.bruto,
+    nome: nome, empresa: empresa, cargo: $('fCargo').value.trim(),
+    email: email, telefone: tel,
+    ramo: sel.ramo, funcionarios: sel.func,
+    assinatura: sel.assin, plataforma: $('fPlat').value.trim(),
+    contratos: sel.contr, obs: $('fObs').value.trim(),
+    semEmail: !email, enviado: false, tentativas: 0
+  };
+  var f = fila(); f.push(lead); setFila(f);
+  $('okNome').textContent = nome;
+  $('okDetalhe').textContent = empresa + (lead.cargo ? ' · ' + lead.cargo : '') +
+    ' — captado por ' + exec.nome;
+  tela('tOk');
+  sincronizar();
+}
+
+/* ---------- envio ao HubSpot ---------- */
+function emailEnvio(l){
+  if (l.email) return l.email;
+  var chave = (l.codigo || l.id).toString().toLowerCase().replace(/[^a-z0-9]/g,'');
+  return 'sem-email-' + chave + '@projuris-summit-2026.invalid';
+}
+function payload(l){
+  var f = [];
+  var add = function(n,v){ if (v!==undefined && v!==null && v!=='') f.push({objectTypeId:'0-1',name:n,value:String(v)}); };
+  var partes = l.nome.trim().split(/\s+/);
+  add('email', emailEnvio(l));
+  add('firstname', partes[0]);
+  add('lastname', partes.slice(1).join(' ') || partes[0]);
+  add('company', l.empresa);
+  add('jobtitle', l.cargo);
+  add('phone', l.telefone);
+  add('ps26_captado_por', l.execNome);
+  add('ps26_contato_no_evento', 'Sim');
+  add('ps26_origem_captura', l.origem === 'qrcode' ? 'Leitor de QR Code' : 'Preenchimento manual');
+  add('ps26_codigo_cracha', l.codigo);
+  add('ps26_qr_bruto', l.bruto);
+  add('ps26_ramo', l.ramo);
+  add('ps26_funcionarios', l.funcionarios);
+  add('ps26_usa_assinatura', l.assinatura);
+  add('ps26_plataforma_atual', l.plataforma);
+  add('ps26_contratos_mes', l.contratos);
+  add('ps26_observacoes', l.obs);
+  add('ps26_capturado_em', l.ts);
+  add('ps26_sem_email', l.semEmail ? 'Sim' : 'Não');
+  return { fields: f, context: { pageUri: location.href, pageName: 'Captação Projuris Summit 2026' } };
+}
+var sincronizando = false;
+function sincronizar(){
+  if (sincronizando) return;
+  if (!navigator.onLine) { pintaFila(); return; }
+  if (!C.formGuid || C.formGuid.indexOf('__') === 0){ pintaFila(); return; }
+  var f = fila(), pend = f.filter(function(x){ return !x.enviado && x.tentativas < 12; });
+  if (!pend.length) { pintaFila(); return; }
+  sincronizando = true;
+  var url = 'https://api.hsforms.com/submissions/v3/integration/submit/'+C.portalId+'/'+C.formGuid;
+  var proximo = function(i){
+    if (i >= pend.length){ sincronizando=false; setFila(f); return; }
+    var l = pend[i];
+    fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload(l)) })
+      .then(function(res){
+        if (res.ok) { l.enviado = true; l.erro = ''; }
+        else { l.tentativas++; return res.text().then(function(t){ l.erro = res.status+': '+t.slice(0,300); }); }
+      })
+      .catch(function(e){ l.tentativas++; l.erro = String(e); })
+      .then(function(){ setFila(f); proximo(i+1); });
+  };
+  proximo(0);
+}
+window.addEventListener('online', sincronizar);
+setInterval(sincronizar, 20000);
+
+/* ---------- tela da fila ---------- */
+function pintaListaFila(){
+  var f = fila(), el = $('listaFila');
+  if (!f.length){ el.innerHTML = '<p class="sub">Nenhum lead captado ainda.</p>'; return; }
+  el.innerHTML = f.slice().reverse().map(function(l){
+    var st = l.enviado ? '<span style="color:#4ade80">enviado</span>'
+      : (l.erro ? '<span style="color:#fca5a5">erro</span>' : '<span style="color:#fbbf24">na fila</span>');
+    return '<div class="fila-item"><div><b>'+esc(l.nome)+'</b><br>'+
+      '<span style="color:#93a4c0">'+esc(l.empresa)+' · '+esc(l.execNome)+'</span>'+
+      (l.erro && !l.enviado ? '<br><span style="color:#fca5a5;font-size:11px">'+esc(l.erro)+'</span>' : '')+
+      '</div><div>'+st+'</div></div>';
+  }).join('');
+}
+
+/* ---------- boot ---------- */
+function montaExecs(){
+  var el = $('listaExec'); el.innerHTML='';
+  C.executivos.forEach(function(e){
+    var b = document.createElement('button');
+    b.className='btn sec'; b.textContent = e.nome; b.type='button';
+    b.onclick = function(){
+      localStorage.setItem(LS_EXEC, JSON.stringify(e));
+      $('hExec').textContent = e.nome;
+      tela('tScan'); iniciarCamera();
+    };
+    el.appendChild(b);
+  });
+}
+$('btnManual').onclick = function(){ pararCamera(); abrirFicha({}, 'manual'); };
+$('btnCancelar').onclick = function(){ tela('tScan'); iniciarCamera(); };
+$('btnProximo').onclick = function(){ tela('tScan'); iniciarCamera(); };
+$('btnSalvar').onclick = salvar;
+$('btnFila').onclick = function(){ pararCamera(); pintaListaFila(); tela('tFila'); };
+$('btnVoltarScan').onclick = function(){ tela('tScan'); iniciarCamera(); };
+$('btnSincronizar').onclick = function(){ sincronizar(); setTimeout(pintaListaFila, 1200); };
+$('hExec').onclick = function(){ pararCamera(); tela('tExec'); };
+
+montaExecs(); pintaFila();
+var ex = null; try{ ex = JSON.parse(localStorage.getItem(LS_EXEC)||'null'); }catch(e){}
+if (ex && ex.nome){ $('hExec').textContent = ex.nome; tela('tScan'); iniciarCamera(); }
+else { tela('tExec'); }
+
+if ('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden) pararCamera();
+  else if ($('tScan').classList.contains('on')) iniciarCamera();
+});
+})();
+</script>
+</body>
+</html>

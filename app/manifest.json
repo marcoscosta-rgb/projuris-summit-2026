@@ -1,0 +1,12 @@
+{
+  "name": "Captação D4Sign — Projuris Summit 2026",
+  "short_name": "Captação D4Sign",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [
+    { "src": "icone.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
