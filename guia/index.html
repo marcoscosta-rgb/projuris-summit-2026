@@ -372,6 +372,19 @@ footer .ids{
   color:var(--ink-3);
 }
 
+
+.voltar{text-align:center; margin:2.2rem 0 0}
+.voltar a{
+  display:inline-block;
+  font-family:"IBM Plex Mono", monospace;
+  font-size:.76rem; font-weight:600;
+  letter-spacing:.11em; text-transform:uppercase;
+  color:var(--accent-ink); background:var(--accent);
+  border:1px solid var(--accent); border-radius:.3rem;
+  padding:.85rem 1.3rem; text-decoration:none;
+}
+.voltar a:focus-visible{outline:3px solid var(--accent); outline-offset:3px}
+
 @media (max-width:24rem){
   body{font-size:16px}
   .doc{padding:0 .9rem 3.5rem}
@@ -545,5 +558,8 @@ footer .ids{
 
 </div>
 
+  <p class="voltar">
+    <a href="../app/">Abrir o leitor de crachá</a>
+  </p>
 </body>
 </html>
