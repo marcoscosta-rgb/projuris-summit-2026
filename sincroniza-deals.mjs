@@ -22,13 +22,26 @@ const PIPELINE = '929744040';
 const ASSOC_DEAL_CONTATO = 3;   // negócio -> contato
 const ASSOC_DEAL_EMPRESA = 5;   // negócio -> empresa
 
-const DONOS = {
-  'Marcos Costa': 92039545,
-  'Simone de Alencar Rodrigues': 88335699,
-  'Amanda Costa': 77518012,
-  'Leonardo Santos': 95065899,
-  'Larissa Cavalcante': 79360795,
+/**
+ * Quem CAPTA nem sempre é quem TRABALHA o lead.
+ * Marcos e Amanda captam no evento, mas quem toca esses leads é a Marcella
+ * (outbound Enterprise) — então o negócio nasce no nome dela.
+ * O campo ps26_captado_por continua guardando quem realmente captou, para
+ * medir o resultado da ativação por pessoa.
+ */
+const DONO_DO_NEGOCIO = {
+  'Marcos Costa': 90351877,                  // -> Marcella Figueiredo
+  'Amanda Costa': 90351877,                  // -> Marcella Figueiredo
+  'Simone de Alencar Rodrigues': 88335699,   // toca os próprios
+  'Leonardo Santos': 95065899,               // toca os próprios
+  'Larissa Cavalcante': 79360795,            // toca os próprios
   'Marcella Figueiredo': 90351877,
+};
+const NOME_DO_DONO = {
+  90351877: 'Marcella Figueiredo',
+  88335699: 'Simone de Alencar Rodrigues',
+  95065899: 'Leonardo Santos',
+  79360795: 'Larissa Cavalcante',
 };
 
 async function api(metodo, caminho, corpo, tentativa = 0) {
@@ -123,7 +136,7 @@ for (const bloco of pedacos(pendentes, 100)) {
   const entradas = bloco.map(c => {
     const p = c.properties;
     const nome = [p.firstname, p.lastname].filter(Boolean).join(' ') || p.email || 'Lead sem nome';
-    const dono = DONOS[p.ps26_captado_por];
+    const dono = DONO_DO_NEGOCIO[p.ps26_captado_por];
     const empresaId = empresaPorContato.get(String(c.id));
     const assoc = [{ to: { id: c.id },
       types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: ASSOC_DEAL_CONTATO }] }];
@@ -143,9 +156,13 @@ for (const bloco of pedacos(pendentes, 100)) {
   });
 
   if (SIMULAR) {
-    entradas.forEach(e => console.log('  [simulado] ' + e.properties.dealname +
-      ' -> ' + (e.properties.hubspot_owner_id || 'sem dono') +
-      (e.associations.length > 1 ? ' (+empresa)' : '')));
+    entradas.forEach((e, i) => {
+      const cap = bloco[i].properties.ps26_captado_por || '?';
+      const dono = NOME_DO_DONO[e.properties.hubspot_owner_id] || 'sem dono';
+      console.log('  [simulado] ' + e.properties.dealname +
+        '\n             captado por ' + cap + '  ->  trabalha ' + dono +
+        (e.associations.length > 1 ? '  (+empresa)' : ''));
+    });
     criados += entradas.length;
     continue;
   }
@@ -154,7 +171,10 @@ for (const bloco of pedacos(pendentes, 100)) {
   if (r.ok || r.status === 207) {
     const n = (r.json.results || []).length;
     criados += n;
-    (r.json.results || []).forEach(d => console.log('  [criado] ' + d.properties.dealname));
+    (r.json.results || []).forEach(d => {
+      const dono = NOME_DO_DONO[d.properties.hubspot_owner_id] || 'sem dono';
+      console.log('  [criado] ' + d.properties.dealname + '  ->  ' + dono);
+    });
     const falhou = (r.json.errors || []);
     falhou.forEach(e => { erros++; console.log('  [ERRO] ' + JSON.stringify(e).slice(0, 180)); });
   } else {
