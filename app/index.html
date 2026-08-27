@@ -100,9 +100,10 @@ textarea{min-height:88px;resize:vertical}
       <div class="mira"></div>
     </div>
     <div class="leitura" id="statusScan">Iniciando a câmera…</div>
-    <button class="btn sec" id="btnManual">Digitar sem ler o QR</button>
+    <button class="btn sec" id="btnManual">Voltar e preencher à mão</button>
     <button class="btn ghost" id="btnFila">Ver leads pendentes de envio</button>
-    <div class="rodape">Aponte para o QR Code do crachá.<br>A leitura é automática.</div>
+    <div class="rodape">Serve para QR de <b>cartão de visita</b>.<br>
+      O QR do crachá do evento só abre o site da Projuris — não traz dados da pessoa.</div>
   </section>
 
   <!-- ===== TELA 3: ficha ===== -->
@@ -149,7 +150,9 @@ textarea{min-height:88px;resize:vertical}
     <textarea id="fObs" placeholder="Dor mencionada, urgência, próximo passo combinado…"></textarea>
 
     <button class="btn" id="btnSalvar">Salvar lead</button>
-    <button class="btn sec" id="btnCancelar">Cancelar</button>
+    <button class="btn sec" id="btnCancelar">Limpar e começar outro</button>
+    <button class="btn ghost" id="btnLerQR">Ler QR de cartão de visita</button>
+    <button class="btn ghost" id="btnFila2">Ver leads pendentes de envio</button>
     <div class="rodape">O lead é salvo neste celular na hora e enviado ao HubSpot<br>
       assim que houver internet. Nada se perde se o sinal cair.</div>
   </section>
@@ -305,7 +308,9 @@ function iniciarCamera(){
   var v = $('video'), st = $('statusScan');
   st.textContent = 'Iniciando a câmera…';
   navigator.mediaDevices.getUserMedia({
-    video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} }, audio:false
+    video:{ facingMode:{ideal:'environment'},
+            width:{ideal:1920}, height:{ideal:1080},
+            focusMode:'continuous', advanced:[{focusMode:'continuous'}] }, audio:false
   }).then(function(s){
     stream = s; v.srcObject = s; v.setAttribute('playsinline','');
     return v.play();
@@ -321,6 +326,21 @@ var det = null;
 if ('BarcodeDetector' in window){
   try{ det = new window.BarcodeDetector({formats:['qr_code']}); }catch(e){ det = null; }
 }
+/* Recorta um pedaço do vídeo, redimensiona para um tamanho bom de leitura
+   e tenta decodificar. Devolve o conteúdo do QR ou vazio. */
+var _cv = null, _cx = null;
+function leQuadro(v, x, y, larg, alt, alvo){
+  var esc = Math.min(1, alvo / Math.max(larg, alt));
+  var w = Math.max(1, Math.round(larg * esc)), h = Math.max(1, Math.round(alt * esc));
+  if (!_cv){ _cv = document.createElement('canvas'); _cx = _cv.getContext('2d', {willReadFrequently:true}); }
+  if (_cv.width !== w || _cv.height !== h){ _cv.width = w; _cv.height = h; }
+  try{
+    _cx.drawImage(v, x, y, larg, alt, 0, 0, w, h);
+    var img = _cx.getImageData(0, 0, w, h);
+    var res = window.jsQR(img.data, w, h, {inversionAttempts:'attemptBoth'});
+    return (res && res.data) ? res.data : '';
+  }catch(e){ return ''; }
+}
 function loopLeitura(){
   if (!lendo) return;
   var v = $('video');
@@ -330,15 +350,18 @@ function loopLeitura(){
         if (cods && cods.length) achou(cods[0].rawValue);
       }).catch(function(){ det = null; });
     } else {
-      var cv = document.createElement('canvas');
-      var w = Math.min(v.videoWidth, 720), h = Math.round(v.videoHeight * (w/v.videoWidth));
-      if (w && h){
-        cv.width=w; cv.height=h;
-        var cx = cv.getContext('2d', {willReadFrequently:true});
-        cx.drawImage(v,0,0,w,h);
-        var img = cx.getImageData(0,0,w,h);
-        var res = window.jsQR(img.data, w, h, {inversionAttempts:'attemptBoth'});
-        if (res && res.data) achou(res.data);
+      /* Crachá plastificado reflete muito e o QR do evento é denso.
+         Primeiro o quadro inteiro em boa resolução; se falhar, a região
+         central ampliada, que é onde a pessoa naturalmente mira. */
+      var vw = v.videoWidth, vh = v.videoHeight;
+      if (vw && vh){
+        var achado = leQuadro(v, 0, 0, vw, vh, 1080);
+        if (!achado){
+          var lado = Math.round(Math.min(vw, vh) * 0.62);
+          achado = leQuadro(v, Math.round((vw - lado) / 2), Math.round((vh - lado) / 2),
+                            lado, lado, 900);
+        }
+        if (achado) achou(achado);
       }
     }
   }
@@ -529,17 +552,17 @@ function montaExecs(){
     b.onclick = function(){
       localStorage.setItem(LS_EXEC, JSON.stringify(e));
       $('hExec').textContent = e.nome;
-      tela('tScan'); iniciarCamera();
+      abrirFicha({}, 'manual');   // o QR do cracha nao identifica a pessoa
     };
     el.appendChild(b);
   });
 }
 $('btnManual').onclick = function(){ pararCamera(); abrirFicha({}, 'manual'); };
-$('btnCancelar').onclick = function(){ tela('tScan'); iniciarCamera(); };
-$('btnProximo').onclick = function(){ tela('tScan'); iniciarCamera(); };
+$('btnCancelar').onclick = function(){ abrirFicha({}, 'manual'); };
+$('btnProximo').onclick = function(){ abrirFicha({}, 'manual'); };
 $('btnSalvar').onclick = salvar;
 $('btnFila').onclick = function(){ pararCamera(); pintaListaFila(); tela('tFila'); };
-$('btnVoltarScan').onclick = function(){ tela('tScan'); iniciarCamera(); };
+$('btnVoltarScan').onclick = function(){ abrirFicha({}, 'manual'); };
 $('btnSincronizar').onclick = function(){ sincronizar(); setTimeout(pintaListaFila, 1200); };
 
 /* ---------- copia de seguranca ----------
@@ -591,11 +614,13 @@ $('btnExportar').onclick = function(){
   }
   mostrarNaTela();
 };
+$('btnLerQR').onclick = function(){ tela('tScan'); iniciarCamera(); };
+$('btnFila2').onclick = function(){ pararCamera(); pintaListaFila(); tela('tFila'); };
 $('hExec').onclick = function(){ pararCamera(); tela('tExec'); };
 
 montaExecs(); pintaFila();
 var ex = null; try{ ex = JSON.parse(localStorage.getItem(LS_EXEC)||'null'); }catch(e){}
-if (ex && ex.nome){ $('hExec').textContent = ex.nome; tela('tScan'); iniciarCamera(); }
+if (ex && ex.nome){ $('hExec').textContent = ex.nome; abrirFicha({}, 'manual'); }
 else { tela('tExec'); }
 
 if ('serviceWorker' in navigator){
