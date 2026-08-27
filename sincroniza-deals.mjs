@@ -1,48 +1,50 @@
 /**
- * Cria um negócio no pipeline "Projuris Summit 2026" para cada lead captado,
- * já atribuído ao executivo que fez a captação, e associa contato e empresa.
+ * Mantém o pipeline do Projuris Summit 2026 em dia.
  *
- * O formulário do HubSpot cria apenas o CONTATO — negócio não é criado por ele.
- * Este script fecha essa lacuna e roda sozinho a cada 5 minutos pelo GitHub
- * Actions durante o evento (.github/workflows/sincroniza.yml).
+ * Faz três coisas, nesta ordem, e nunca duplica negócio:
  *
- * Trabalha em lote: uma chamada resolve 100 contatos, em vez de uma por contato.
- * Rodar de novo não duplica nada — quem já tem negócio no pipeline é ignorado.
+ *  1. CRIA  — todo lead do evento que ainda não tem negócio no pipeline ganha um,
+ *             associado ao contato e à empresa. Quem veio só do mailing nasce
+ *             SEM DONO, à espera de ser reivindicado.
+ *  2. VINCULA — quando um executivo capta alguém pelo formulário, o negócio que
+ *             já existia recebe o dono, em vez de um segundo negócio ser criado.
+ *             Marcos e Amanda captam, mas quem trabalha é a Marcella.
+ *  3. DISTRIBUI (só com --distribuir) — reparte os negócios que sobraram sem dono
+ *             igualmente entre Marcella, Simone, Leonardo e Larissa.
  *
- * Uso:  HUBSPOT_TOKEN=... node sincroniza-deals.mjs
- *       HUBSPOT_TOKEN=... node sincroniza-deals.mjs --simular
+ * As automações nativas do HubSpot foram desligadas de propósito: elas criavam
+ * um negócio novo a cada captação, o que duplicaria quem já veio do mailing.
+ *
+ * Uso:  HUBSPOT_TOKEN=... node sincroniza-deals.mjs [--simular] [--distribuir]
  */
 
 const TOKEN = process.env.HUBSPOT_TOKEN;
 if (!TOKEN) { console.error('Falta HUBSPOT_TOKEN no ambiente.'); process.exit(1); }
 const SIMULAR = process.argv.includes('--simular');
+const DISTRIBUIR = process.argv.includes('--distribuir');
 
 const BASE = 'https://api.hubapi.com';
 const PIPELINE = '929744040';
-const ASSOC_DEAL_CONTATO = 3;   // negócio -> contato
-const ASSOC_DEAL_EMPRESA = 5;   // negócio -> empresa
+const ASSOC_DEAL_CONTATO = 3;
+const ASSOC_DEAL_EMPRESA = 5;
 
-/**
- * Quem CAPTA nem sempre é quem TRABALHA o lead.
- * Marcos e Amanda captam no evento, mas quem toca esses leads é a Marcella
- * (outbound Enterprise) — então o negócio nasce no nome dela.
- * O campo ps26_captado_por continua guardando quem realmente captou, para
- * medir o resultado da ativação por pessoa.
- */
+/* quem capta nem sempre é quem trabalha */
 const DONO_DO_NEGOCIO = {
-  'Marcos Costa': 90351877,                  // -> Marcella Figueiredo
-  'Amanda Costa': 90351877,                  // -> Marcella Figueiredo
-  'Simone de Alencar Rodrigues': 88335699,   // toca os próprios
-  'Leonardo Santos': 95065899,               // toca os próprios
-  'Larissa Cavalcante': 79360795,            // toca os próprios
+  'Marcos Costa': 90351877,                  // -> Marcella
+  'Amanda Costa': 90351877,                  // -> Marcella
   'Marcella Figueiredo': 90351877,
+  'Simone de Alencar Rodrigues': 88335699,
+  'Leonardo Santos': 95065899,
+  'Larissa Cavalcante': 79360795,
 };
-const NOME_DO_DONO = {
-  90351877: 'Marcella Figueiredo',
-  88335699: 'Simone de Alencar Rodrigues',
-  95065899: 'Leonardo Santos',
-  79360795: 'Larissa Cavalcante',
-};
+/* rodízio da distribuição final */
+const EQUIPE = [
+  { id: 90351877, nome: 'Marcella Figueiredo' },
+  { id: 88335699, nome: 'Simone de Alencar Rodrigues' },
+  { id: 95065899, nome: 'Leonardo Santos' },
+  { id: 79360795, nome: 'Larissa Cavalcante' },
+];
+const NOME_DONO = Object.fromEntries(EQUIPE.map(e => [e.id, e.nome]));
 
 async function api(metodo, caminho, corpo, tentativa = 0) {
   const res = await fetch(BASE + caminho, {
@@ -50,8 +52,7 @@ async function api(metodo, caminho, corpo, tentativa = 0) {
     headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
     body: corpo ? JSON.stringify(corpo) : undefined,
   });
-  // limite de requisições: espera e tenta de novo
-  if (res.status === 429 && tentativa < 4) {
+  if (res.status === 429 && tentativa < 5) {
     await new Promise(r => setTimeout(r, 2000 * (tentativa + 1)));
     return api(metodo, caminho, corpo, tentativa + 1);
   }
@@ -59,130 +60,175 @@ async function api(metodo, caminho, corpo, tentativa = 0) {
   let json = null; try { json = txt ? JSON.parse(txt) : null; } catch {}
   return { ok: res.ok, status: res.status, json, txt };
 }
+const pedacos = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
-const pedacos = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
-
-/* ---------- etapa inicial do pipeline ---------- */
+/* ---------- etapa inicial ---------- */
 const pl = await api('GET', '/crm/v3/pipelines/deals/' + PIPELINE);
-if (!pl.ok) { console.error('Pipeline não encontrado: ' + pl.status + ' ' + pl.txt.slice(0, 200)); process.exit(1); }
+if (!pl.ok) { console.error('Pipeline não encontrado.'); process.exit(1); }
 const etapa = pl.json.stages.slice().sort((a, b) => a.displayOrder - b.displayOrder)[0];
 console.log('Pipeline: ' + pl.json.label + ' · etapa inicial: ' + etapa.label);
 
-/* ---------- todos os leads marcados com o evento ---------- */
+/* ---------- todos os leads do evento ---------- */
 const PROPS = ['email', 'firstname', 'lastname', 'company', 'phone', 'ps26_captado_por', 'ps26_origem_captura'];
 let apos, contatos = [];
 do {
   const r = await api('POST', '/crm/v3/objects/contacts/search', {
-    filterGroups: [{ filters: [{ propertyName: 'ps26_captado_por', operator: 'HAS_PROPERTY' }] }],
+    filterGroups: [{ filters: [{ propertyName: 'ps26_origem_captura', operator: 'HAS_PROPERTY' }] }],
     properties: PROPS, limit: 100, ...(apos ? { after: apos } : {}),
   });
   if (!r.ok) { console.error('Busca falhou: ' + r.status + ' ' + r.txt.slice(0, 200)); process.exit(1); }
   contatos.push(...(r.json.results || []));
   apos = r.json.paging?.next?.after;
 } while (apos);
+const captados = contatos.filter(c => c.properties.ps26_captado_por).length;
+console.log('Leads do evento: ' + contatos.length + '  (captados pelo time: ' + captados + ')');
+if (!contatos.length) process.exit(0);
 
-console.log('Leads do evento: ' + contatos.length);
-if (!contatos.length) { console.log('Nada a fazer.'); process.exit(0); }
-
-/* ---------- quem já tem negócio: leitura em lote ---------- */
-const jaTemNegocio = new Set();
+/* ---------- negócios já existentes, em lote ---------- */
+const dealDoContato = new Map();     // contatoId -> dealId (no pipeline do evento)
 const idsDeals = new Set();
-const assocPorContato = new Map();
-
+const assoc = new Map();
 for (const bloco of pedacos(contatos.map(c => c.id), 100)) {
-  const r = await api('POST', '/crm/v4/associations/contacts/deals/batch/read',
-    { inputs: bloco.map(id => ({ id })) });
-  if (!r.ok) { console.error('Leitura de associações falhou: ' + r.status + ' ' + r.txt.slice(0, 200)); process.exit(1); }
-  for (const linha of (r.json.results || [])) {
-    const ids = (linha.to || []).map(t => t.toObjectId);
-    assocPorContato.set(String(linha.from.id), ids);
-    ids.forEach(d => idsDeals.add(String(d)));
+  const r = await api('POST', '/crm/v4/associations/contacts/deals/batch/read', { inputs: bloco.map(id => ({ id })) });
+  if (!r.ok) { console.error('Leitura de associações falhou: ' + r.status); process.exit(1); }
+  for (const l of (r.json.results || [])) {
+    const ids = (l.to || []).map(t => String(t.toObjectId));
+    assoc.set(String(l.from.id), ids);
+    ids.forEach(d => idsDeals.add(d));
   }
 }
-
-/* ---------- quais desses negócios estão no pipeline do evento ---------- */
-const dealsNoPipeline = new Set();
+const dealInfo = new Map();          // dealId -> { pipeline, owner }
 for (const bloco of pedacos([...idsDeals], 100)) {
   const r = await api('POST', '/crm/v3/objects/deals/batch/read',
-    { properties: ['pipeline'], inputs: bloco.map(id => ({ id })) });
+    { properties: ['pipeline', 'hubspot_owner_id'], inputs: bloco.map(id => ({ id })) });
   if (!r.ok) continue;
   for (const d of (r.json.results || [])) {
-    if (d.properties?.pipeline === PIPELINE) dealsNoPipeline.add(String(d.id));
+    dealInfo.set(String(d.id), { pipeline: d.properties?.pipeline, owner: d.properties?.hubspot_owner_id || '' });
   }
 }
-for (const [contatoId, ids] of assocPorContato) {
-  if (ids.some(d => dealsNoPipeline.has(String(d)))) jaTemNegocio.add(contatoId);
+for (const [contatoId, ids] of assoc) {
+  const doEvento = ids.find(d => dealInfo.get(d)?.pipeline === PIPELINE);
+  if (doEvento) dealDoContato.set(contatoId, doEvento);
 }
 
-const pendentes = contatos.filter(c => !jaTemNegocio.has(String(c.id)));
-console.log('Já tinham negócio: ' + jaTemNegocio.size + ' · a criar: ' + pendentes.length);
-if (!pendentes.length) { console.log('Pipeline já está em dia.'); process.exit(0); }
+/* ---------- 1) criar os que faltam, sem dono ---------- */
+const semNegocio = contatos.filter(c => !dealDoContato.has(String(c.id)));
+console.log('\n1) Criar negócio · faltando: ' + semNegocio.length);
 
-/* ---------- empresa de cada lead, para associar ao negócio ---------- */
-const empresaPorContato = new Map();
-for (const bloco of pedacos(pendentes.map(c => c.id), 100)) {
-  const r = await api('POST', '/crm/v4/associations/contacts/companies/batch/read',
-    { inputs: bloco.map(id => ({ id })) });
+const empresaDoContato = new Map();
+for (const bloco of pedacos(semNegocio.map(c => c.id), 100)) {
+  const r = await api('POST', '/crm/v4/associations/contacts/companies/batch/read', { inputs: bloco.map(id => ({ id })) });
   if (!r.ok) continue;
-  for (const linha of (r.json.results || [])) {
-    const primeira = (linha.to || [])[0];
-    if (primeira) empresaPorContato.set(String(linha.from.id), String(primeira.toObjectId));
+  for (const l of (r.json.results || [])) {
+    const primeira = (l.to || [])[0];
+    if (primeira) empresaDoContato.set(String(l.from.id), String(primeira.toObjectId));
   }
 }
 
-/* ---------- criação dos negócios, em lote ---------- */
 let criados = 0, erros = 0;
-for (const bloco of pedacos(pendentes, 100)) {
-  const entradas = bloco.map(c => {
+for (const bloco of pedacos(semNegocio, 100)) {
+  const inputs = bloco.map(c => {
     const p = c.properties;
     const nome = [p.firstname, p.lastname].filter(Boolean).join(' ') || p.email || 'Lead sem nome';
-    const dono = DONO_DO_NEGOCIO[p.ps26_captado_por];
-    const empresaId = empresaPorContato.get(String(c.id));
-    const assoc = [{ to: { id: c.id },
-      types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: ASSOC_DEAL_CONTATO }] }];
-    if (empresaId) {
-      assoc.push({ to: { id: empresaId },
-        types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: ASSOC_DEAL_EMPRESA }] });
-    }
+    const dono = DONO_DO_NEGOCIO[p.ps26_captado_por];   // só quem foi captado nasce com dono
+    const empresaId = empresaDoContato.get(String(c.id));
+    const a = [{ to: { id: c.id }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: ASSOC_DEAL_CONTATO }] }];
+    if (empresaId) a.push({ to: { id: empresaId }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: ASSOC_DEAL_EMPRESA }] });
     return {
       properties: {
         dealname: nome + (p.company ? ' — ' + p.company : ''),
-        pipeline: PIPELINE,
-        dealstage: etapa.id,
+        pipeline: PIPELINE, dealstage: etapa.id,
         ...(dono ? { hubspot_owner_id: String(dono) } : {}),
       },
-      associations: assoc,
+      associations: a,
     };
   });
-
-  if (SIMULAR) {
-    entradas.forEach((e, i) => {
-      const cap = bloco[i].properties.ps26_captado_por || '?';
-      const dono = NOME_DO_DONO[e.properties.hubspot_owner_id] || 'sem dono';
-      console.log('  [simulado] ' + e.properties.dealname +
-        '\n             captado por ' + cap + '  ->  trabalha ' + dono +
-        (e.associations.length > 1 ? '  (+empresa)' : ''));
-    });
-    criados += entradas.length;
-    continue;
-  }
-
-  const r = await api('POST', '/crm/v3/objects/deals/batch/create', { inputs: entradas });
+  if (SIMULAR) { criados += inputs.length; continue; }
+  const r = await api('POST', '/crm/v3/objects/deals/batch/create', { inputs });
   if (r.ok || r.status === 207) {
-    const n = (r.json.results || []).length;
-    criados += n;
-    (r.json.results || []).forEach(d => {
-      const dono = NOME_DO_DONO[d.properties.hubspot_owner_id] || 'sem dono';
-      console.log('  [criado] ' + d.properties.dealname + '  ->  ' + dono);
-    });
-    const falhou = (r.json.errors || []);
-    falhou.forEach(e => { erros++; console.log('  [ERRO] ' + JSON.stringify(e).slice(0, 180)); });
-  } else {
-    erros += entradas.length;
-    console.log('  [ERRO no lote] ' + r.status + ' ' + r.txt.slice(0, 240));
+    criados += (r.json.results || []).length;
+    (r.json.errors || []).forEach(() => erros++);
+  } else { erros += inputs.length; console.log('  [ERRO lote] ' + r.status + ' ' + r.txt.slice(0, 200)); }
+  process.stdout.write('   criados: ' + criados + '   \r');
+}
+console.log('   criados: ' + criados + (erros ? ' | erros: ' + erros : ''));
+
+/* ---------- 2) vincular dono a quem foi captado depois ---------- */
+const paraVincular = [];
+for (const c of contatos) {
+  const cap = c.properties.ps26_captado_por;
+  if (!cap) continue;
+  const dealId = dealDoContato.get(String(c.id));
+  if (!dealId) continue;                       // acabou de ser criado já com dono
+  const dono = DONO_DO_NEGOCIO[cap];
+  if (!dono) continue;
+  const atual = dealInfo.get(dealId)?.owner || '';
+  if (String(atual) === String(dono)) continue;
+  paraVincular.push({ id: dealId, properties: { hubspot_owner_id: String(dono) }, _cap: cap, _dono: dono });
+}
+console.log('\n2) Vincular dono a quem foi captado · ' + paraVincular.length);
+let vinculados = 0;
+for (const bloco of pedacos(paraVincular, 100)) {
+  if (SIMULAR) {
+    bloco.forEach(b => console.log('   [simulado] negócio ' + b.id + ' · captado por ' + b._cap + ' -> ' + NOME_DONO[b._dono]));
+    vinculados += bloco.length; continue;
   }
+  const r = await api('POST', '/crm/v3/objects/deals/batch/update',
+    { inputs: bloco.map(b => ({ id: b.id, properties: b.properties })) });
+  if (r.ok || r.status === 207) vinculados += (r.json.results || []).length;
+  else { erros += bloco.length; console.log('  [ERRO] ' + r.status + ' ' + r.txt.slice(0, 160)); }
+}
+console.log('   vinculados: ' + vinculados);
+
+/* ---------- 3) distribuir os órfãos, só quando pedido ---------- */
+if (!DISTRIBUIR) {
+  const orfaos = [...dealDoContato.values()].filter(d => !(dealInfo.get(d)?.owner)).length
+    + semNegocio.filter(c => !c.properties.ps26_captado_por).length;
+  console.log('\n3) Distribuição: não solicitada.');
+  console.log('   negócios sem dono aguardando: ~' + orfaos);
+  console.log('   rode com --distribuir quando quiser repartir entre a equipe.');
+  process.exit(erros ? 1 : 0);
 }
 
-console.log('\n' + '='.repeat(50));
-console.log((SIMULAR ? 'simulados: ' : 'negócios criados: ') + criados + ' | erros: ' + erros);
+console.log('\n3) Distribuir os negócios sem dono');
+let apos2, todosDeals = [];
+do {
+  const r = await api('POST', '/crm/v3/objects/deals/search', {
+    filterGroups: [{ filters: [
+      { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE },
+      { propertyName: 'hubspot_owner_id', operator: 'NOT_HAS_PROPERTY' },
+    ] }],
+    properties: ['dealname'], limit: 100, ...(apos2 ? { after: apos2 } : {}),
+  });
+  if (!r.ok) { console.error('   busca falhou: ' + r.status + ' ' + r.txt.slice(0, 160)); break; }
+  todosDeals.push(...(r.json.results || []));
+  apos2 = r.json.paging?.next?.after;
+} while (apos2);
+
+console.log('   sem dono: ' + todosDeals.length);
+if (!todosDeals.length) process.exit(erros ? 1 : 0);
+
+// ordena por id para o rodízio ser estável entre execuções
+todosDeals.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+const conta = {};
+const lotes = todosDeals.map((d, i) => {
+  const membro = EQUIPE[i % EQUIPE.length];
+  conta[membro.nome] = (conta[membro.nome] || 0) + 1;
+  return { id: d.id, properties: { hubspot_owner_id: String(membro.id) } };
+});
+console.log('   divisão: ' + Object.entries(conta).map(([n, q]) => n.split(' ')[0] + ' ' + q).join(' · '));
+
+let distribuidos = 0;
+if (!SIMULAR) {
+  for (const bloco of pedacos(lotes, 100)) {
+    const r = await api('POST', '/crm/v3/objects/deals/batch/update', { inputs: bloco });
+    if (r.ok || r.status === 207) distribuidos += (r.json.results || []).length;
+    else { erros += bloco.length; console.log('   [ERRO] ' + r.status + ' ' + r.txt.slice(0, 160)); }
+    process.stdout.write('   distribuídos: ' + distribuidos + '   \r');
+  }
+} else distribuidos = lotes.length;
+console.log('   distribuídos: ' + distribuidos);
+
+console.log('\n' + '='.repeat(52));
+console.log('criados: ' + criados + ' | vinculados: ' + vinculados + ' | distribuídos: ' + distribuidos + ' | erros: ' + erros);
 if (erros) process.exit(1);
