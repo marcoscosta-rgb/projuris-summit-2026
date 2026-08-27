@@ -73,7 +73,10 @@ const PROPS = ['email', 'firstname', 'lastname', 'company', 'phone', 'ps26_capta
 let apos, contatos = [];
 do {
   const r = await api('POST', '/crm/v3/objects/contacts/search', {
-    filterGroups: [{ filters: [{ propertyName: 'ps26_origem_captura', operator: 'HAS_PROPERTY' }] }],
+    filterGroups: [{ filters: [
+      { propertyName: 'ps26_origem_captura', operator: 'HAS_PROPERTY' },
+      { propertyName: 'ps26_registro_duplicado', operator: 'NOT_HAS_PROPERTY' },   // 2º cadastro da mesma pessoa
+    ] }],
     properties: PROPS, limit: 100, ...(apos ? { after: apos } : {}),
   });
   if (!r.ok) { console.error('Busca falhou: ' + r.status + ' ' + r.txt.slice(0, 200)); process.exit(1); }
@@ -198,7 +201,7 @@ do {
       { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE },
       { propertyName: 'hubspot_owner_id', operator: 'NOT_HAS_PROPERTY' },
     ] }],
-    properties: ['dealname'], limit: 100, ...(apos2 ? { after: apos2 } : {}),
+    properties: ['dealname', 'ps26_porte_empresa'], limit: 100, ...(apos2 ? { after: apos2 } : {}),
   });
   if (!r.ok) { console.error('   busca falhou: ' + r.status + ' ' + r.txt.slice(0, 160)); break; }
   todosDeals.push(...(r.json.results || []));
@@ -208,15 +211,33 @@ do {
 console.log('   sem dono: ' + todosDeals.length);
 if (!todosDeals.length) process.exit(erros ? 1 : 0);
 
-// ordena por id para o rodízio ser estável entre execuções
-todosDeals.sort((a, b) => String(a.id).localeCompare(String(b.id)));
-const conta = {};
+/* Empresas maiores primeiro, e o rodízio começa pela Marcella.
+   Assim as maiores contas são repartidas de cima para baixo, na ordem
+   Marcella → Simone → Leonardo → Larissa, e ninguém fica só com as pontas. */
+const PESO = { '5000+': 5, '1001-5000': 4, '201-1000': 3, '51-200': 2, '1-50': 1, 'Não informado': 0 };
+todosDeals.sort((a, b) => {
+  const pa = PESO[a.properties.ps26_porte_empresa] ?? 0;
+  const pb = PESO[b.properties.ps26_porte_empresa] ?? 0;
+  if (pa !== pb) return pb - pa;
+  return String(a.id).localeCompare(String(b.id));   // estável entre execuções
+});
+
+const conta = {}, porFaixa = {};
 const lotes = todosDeals.map((d, i) => {
   const membro = EQUIPE[i % EQUIPE.length];
+  const faixa = d.properties.ps26_porte_empresa || 'Não informado';
   conta[membro.nome] = (conta[membro.nome] || 0) + 1;
+  porFaixa[faixa] = porFaixa[faixa] || {};
+  porFaixa[faixa][membro.nome] = (porFaixa[faixa][membro.nome] || 0) + 1;
   return { id: d.id, properties: { hubspot_owner_id: String(membro.id) } };
 });
-console.log('   divisão: ' + Object.entries(conta).map(([n, q]) => n.split(' ')[0] + ' ' + q).join(' · '));
+console.log('   total por pessoa: ' + Object.entries(conta).map(([n, q]) => n.split(' ')[0] + ' ' + q).join(' · '));
+console.log('\n   como as faixas ficam repartidas:');
+for (const f of ['5000+', '1001-5000', '201-1000', '51-200', '1-50', 'Não informado']) {
+  if (!porFaixa[f]) continue;
+  const linha = EQUIPE.map(e => e.nome.split(' ')[0] + ' ' + (porFaixa[f][e.nome] || 0)).join(' · ');
+  console.log('     ' + f.padEnd(14) + linha);
+}
 
 let distribuidos = 0;
 if (!SIMULAR) {
