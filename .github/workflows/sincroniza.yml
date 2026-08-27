@@ -4,12 +4,13 @@ name: Sincroniza negócios do Summit
 # correspondente no pipeline do evento, atribuído a quem captou o lead.
 # Roda na nuvem: não depende de nenhuma máquina ligada.
 
-# O agendamento foi DESLIGADO de propósito: quem cria os negócios em tempo real
-# são as automações nativas do HubSpot (ver cria-automacoes.mjs). Manter os dois
-# ligados duplicaria negócios, porque a automação nativa não checa duplicidade.
-# Este fluxo fica como rede de segurança, disparado à mão quando necessário —
-# por exemplo, ao carregar o mailing que a organização entrega após o evento.
+# As automações nativas do HubSpot estão DESLIGADAS: elas criavam um negócio novo
+# a cada captação, duplicando quem já vinha do mailing. Quem mantém o pipeline em
+# dia é este fluxo, que verifica duplicidade antes de criar e por isso é seguro
+# rodar em intervalo curto.
 on:
+  schedule:
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 # só uma execução por vez, para não criar negócio duplicado
